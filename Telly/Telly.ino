@@ -27,7 +27,7 @@
         #define DIR1PINA 21
         #define DIR2PINA 20
         #define SPEEDPINA 9
-        
+
         #define DIR1PINB 19
         #define DIR2PINB 18
         #define SPEEDPINB 10
@@ -61,12 +61,8 @@
 
 
 #ifdef HAS_SERVO
-  const int left_stop=95;
-  #ifdef FRANKENTELLY
-    const int right_stop=90;
-  #else
+    const int left_stop=95;
     const int right_stop=95;
-  #endif
 //#if DRIVE_TRAIN==SERVO_EXIST
   #ifdef WANT_MTIMINGS
     int dspeed=10;
@@ -133,7 +129,7 @@
    */
   #define I2C_ADDRESS      0x04
   #define I2C_TIMEOUT_TIME 1000
-#endif 
+#endif
 
 #define NUM_LEDS         (9*2)
 /*
@@ -241,7 +237,7 @@ void stop(void) {
       analogWrite(SPEEDPINB, 0);
       digitalWrite(DIR1PINB, LOW);
       digitalWrite(DIR2PINB, HIGH);
-    #endif    
+    #endif
     /*
      * If the value was 1, this is a special case, and the STOP is being
      * executed immediately.  Return the normal OK string.  Otherwise, the
@@ -249,17 +245,20 @@ void stop(void) {
      * command.  Return the asynchronous OK  string.
      */
 
+#ifdef WANT_SERIAL
     if (compat) {
         OK();
     }
-
     else {
+#endif 
         if (stop_time == 1)
             OK();
         else
             redraw_prompt = true;
             Serial.println("\rASYNC_OK");
+#ifdef WANT_SERIAL
     }
+#endif 
 
     stop_time = 0;
 }
@@ -315,18 +314,18 @@ void move(int left, int right, int default_time) {
         // motor 1 backwards
         analogWrite(SPEEDPINA, lspeed);
         digitalWrite(DIR1PINA, LOW);
-        digitalWrite(DIR2PINA, HIGH);      
+        digitalWrite(DIR2PINA, HIGH);
       }
       if (right<right_stop) {
         // motor 2 forward
         analogWrite(SPEEDPINB, rspeed);
         digitalWrite(DIR1PINB, HIGH);
-        digitalWrite(DIR2PINB, LOW);      
+        digitalWrite(DIR2PINB, LOW);
       } else if (right>left_stop) {
         // motor 2 backwards
         analogWrite(SPEEDPINB, rspeed);
         digitalWrite(DIR1PINB, LOW);
-        digitalWrite(DIR2PINB, HIGH);        
+        digitalWrite(DIR2PINB, HIGH);
       }
     #endif
     schedule_stop(duration);
@@ -366,21 +365,21 @@ void cmd_stop(void) {
       default_drive_time=time;
       OK();
   }
-  
+
   void cmd_settt(void) {
       int time = nextarg_int(1, 0x7fff, 250, -1);
       //Serial.println(format("Turn time set: %d", spd));
       default_turn_time=time;
       OK();
   }
-  
+
   void cmd_setds(void) {
       uint8_t spd = nextarg_int(1, 20, 10, -1);
       Serial.println(format("Drive speed set: %d", spd));
       dspeed=spd;
       OK();
   }
-  
+
   void cmd_setts(void) {
       uint8_t spd = nextarg_int(1, 20, 10, -1);
       Serial.println(format("Turn speed set: %d", spd));
@@ -396,21 +395,21 @@ void cmd_stop(void) {
       gripper_open=pos;
       OK();
   }
-  
+
   void cmd_setgc(void) {
       int pos= nextarg_int(-360, 360, 0, -1);
       //Serial.println(format("Gripper close position set: %d", pos));
       gripper_close=pos;
       OK();
   }
-  
+
   void cmd_open(void) {
       //Serial.println(format("setting gripper %d", gripper_open));
       gripper_servo.write(gripper_open);
       //schedule_gstop(1000);
       OK();
   }
-  
+
   void cmd_close(void) {
       //Serial.println(format("setting gripper %d", gripper_close));
       gripper_servo.write(gripper_close);
@@ -425,7 +424,7 @@ void cmd_stop(void) {
       //Serial.println(format("setting pan %d", pos));
       pan_servo.write(pos);
   }
-  
+
   void cmd_tilt(void) {
       int pos= nextarg_int(-360, 360, 0, -1);
       //Serial.println(format("setting tilt %d", pos));
@@ -498,7 +497,7 @@ void cmd_led(void) {
 #ifdef I2C_MOTOR
 struct result_s{
   unsigned int request;
-  unsigned long result; 
+  unsigned long result;
 };
 
 unsigned resbuf=0;
@@ -628,17 +627,17 @@ void receiveData(int num_bytes) {
                   pixel = val;
                   eye_state++;
                   break;
-  
+
               case 1:
                   R = val;
                   eye_state++;
                   break;
-  
+
               case 2:
                   G = val;
                   eye_state++;
                   break;
-  
+
               case 3:
                   B = val;
                   eye_state = 0;
@@ -659,6 +658,7 @@ void receiveData(int num_bytes) {
             // 2 gripper
             // 3 pan
             // 4 tilt
+            //
             // 0-led:      command,i,r,g,b
             // 10-start:    command,servo1,speed1,servo2,speed2 (new low)
             // 15-stop:     command,servo1,servo2,0,0 (new low)
@@ -878,9 +878,8 @@ void receiveData(int num_bytes) {
                   // reset teensy
                   cmd_reset();
                 break;
-              }
+              } // end switch 
               eye_state=0;
-            }
           /*
           } else {
             // change timing/speed
@@ -919,11 +918,11 @@ void receiveData(int num_bytes) {
                   // need to be able to values from −8,388,608 to 8,388,608 so 24bits (minute in ms)
                   // set&type <= 1 byte
                   // value    <= 3 bytes
-  
+
                   // 32767 to 32767 16bit signed (short)
                   // time can never be negative, so an unsigned short for minute in ms should be fine
                   // servo (angular) 0 to 180 unsigned char
-                  
+
                   // setTime&type <= 1 byte
                   // time <= 2 bytes
                   // setAngle&type <= 1 byte
@@ -943,7 +942,7 @@ void receiveData(int num_bytes) {
                 case 14: // left
                   do_command(format("pan 0"));
                 break;
-                case 15: // center 
+                case 15: // center
                   do_command(format("pan 90"));
                 break;
                 case 16: // right
@@ -974,8 +973,9 @@ void receiveData(int num_bytes) {
        } // end if exec
 #endif
 #if defined(I2C_LIGHTS) && defined(I2C_MOTOR)
-    } // if mode
+    } // end if i2c_compat check
 #endif
+  } // end while
 }
 
 /***/
@@ -988,29 +988,29 @@ void receiveData(int num_bytes) {
       eyes_no_show = false;
       eyes_show();
   }
-  
+
   void blink_close () {
       eyes_no_show = true;
       do_command("led 255 0 0 0");
-  
+
       do_command("led   4 " EYE_BLINK_COLOR);
       do_command("led   5 " EYE_BLINK_COLOR);
       do_command("led   6 " EYE_BLINK_COLOR);
-  
+
       do_command("led  13 " EYE_BLINK_COLOR);
       do_command("led  14 " EYE_BLINK_COLOR);
       do_command("led  15 " EYE_BLINK_COLOR);
       eyes_no_show = false;
       eyes_show();
   }
-  
+
   void cmd_blink() {
       blink_open();   delay(350);
       blink_close(); delay(100);
-  
+
       blink_open();   delay(350);
       blink_close(); delay(100);
-  
+
       blink_open();
   }
 #endif
@@ -1135,7 +1135,7 @@ void setup() {
 #ifdef HAS_GRIPPER
     cmd_open();
 #endif
-    
+
     pinMode(LED_BUILTIN, OUTPUT);
 
     for (int i = 0; i < 8; i++) {
