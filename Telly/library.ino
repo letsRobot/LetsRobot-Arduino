@@ -51,14 +51,15 @@ void ERR(const char *fmt, ... ) {
 }
 
 void OK(const char *fmt, ... ) {
+#ifdef WANT_SERIAL
     if (compat) {
         Serial.print("ok\n");
     }
-
-    else if (!fmt) {
+    else
+#endif
+    if (!fmt) {
         Serial.println("OK");
     }
-
     else {
         va_list args;
         va_start (args, fmt);
@@ -75,8 +76,10 @@ void OK(void) {
 
 #define debug verbose
 void verbose(const char *fmt, ... ) {
+#ifdef WANT_SERIAL
     if (compat)
         return;
+#endif
 
     va_list args;
     va_start (args, fmt);
